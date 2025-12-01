@@ -1,23 +1,27 @@
+using Microsoft.EntityFrameworkCore;
+using OrderService.Data;
+//using OrderService.Services;
+
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
+builder.Services.AddDbContext<OrdersDbContext>(opt =>
+    opt.UseSqlite(builder.Configuration.GetConnectionString("OrdersDb")));
+//builder.Services.AddSingleton<RabbitMqConnection>();
+//builder.Services.AddSingleton<RabbitMqPublisher>();
+builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    app.MapOpenApi();
+    var db = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
+    db.Database.EnsureCreated(); // simple for dev
 }
 
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
+if (app.Environment.IsDevelopment())
+{
+    //app.UseSwagger();
+    //app.UseSwaggerUI();
+}
 app.MapControllers();
-
 app.Run();
