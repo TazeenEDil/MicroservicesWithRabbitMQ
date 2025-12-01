@@ -1,0 +1,28 @@
+name: Microservices RabbitMQ CI/CD
+
+on:
+  push:
+    branches: [ "master", "assignment4-Day1", "assignment4-Day2" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build all projects
+      run: dotnet build --configuration Release --no-restore
+      
+   
+    - name: Run Tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
