@@ -1,0 +1,26 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build all projects
+      run: dotnet build --configuration Release --no-restore
+
+    
+    - name: Run Tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
