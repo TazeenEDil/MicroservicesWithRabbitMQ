@@ -1,4 +1,5 @@
-﻿/*using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OrderService.Data;
 using OrderService.Models;
 using OrderService.Services;
@@ -11,48 +12,53 @@ namespace OrderService.Controllers
     {
         private readonly OrdersDbContext _db;
         private readonly RabbitMqPublisher _publisher;
-        private readonly ILogger<OrdersController> _log;
-        public OrdersController(OrdersDbContext db, RabbitMqPublisher publisher, ILogger<OrdersController> log)
+
+        public OrdersController(OrdersDbContext db, RabbitMqPublisher publisher)
         {
-            _db = db; _publisher = publisher; _log = log;
+            _db = db;
+            _publisher = publisher;
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Order order)
+        public async Task<IActionResult> CreateOrder([FromBody] Order order)
         {
-            if (order == null) return BadRequest();
-            try
+            if (string.IsNullOrEmpty(order.CustomerEmail) ||
+                string.IsNullOrEmpty(order.Product) ||
+                order.Amount <= 0)
             {
-                _db.Orders.Add(order);
-                await _db.SaveChangesAsync();
-
-                var evt = new OrderCreatedEvent
-                {
-                    OrderId = order.Id,
-                    CustomerEmail = order.CustomerEmail,
-                    Product = order.Product,
-                    Amount = order.Amount
-                };
-
-                _publisher.PublishOrderCreated(evt, "order.created");
-
-                _log.LogInformation("Order {id} created and event published", order.Id);
-                return CreatedAtAction(nameof(Get), new { id = order.Id }, order);
+                return BadRequest("Invalid order data");
             }
-            catch (Exception ex)
+
+            order.CreatedAt = DateTime.UtcNow;
+            _db.Orders.Add(order);
+            await _db.SaveChangesAsync();
+
+            var evt = new OrderCreatedEvent
             {
-                _log.LogError(ex, "Error creating order");
-                return StatusCode(500, "Internal server error");
-            }
+                OrderId = order.Id,
+                CustomerEmail = order.CustomerEmail,
+                Product = order.Product,
+                Amount = order.Amount
+            };
+
+            _publisher.PublishOrderCreated(evt);
+
+            return Ok(order);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetOrders()
+        {
+            var orders = await _db.Orders.ToListAsync();
+            return Ok(orders);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<IActionResult> GetOrder(int id)
         {
-            var o = await _db.Orders.FindAsync(id);
-            if (o == null) return NotFound();
-            return Ok(o);
+            var order = await _db.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+            return Ok(order);
         }
     }
 }
-*/

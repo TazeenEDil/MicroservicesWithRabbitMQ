@@ -1,38 +1,25 @@
-﻿/*using Microsoft.Extensions.Configuration;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 
 namespace OrderService.Services
 {
     public class RabbitMqConnection : IDisposable
     {
-        private readonly IConnection _conn;
-        public IModel Channel { get; }
+        private readonly IConnection _connection;
 
-        public RabbitMqConnection(IConfiguration cfg)
+        public RabbitMqConnection(IConfiguration config)
         {
             var factory = new ConnectionFactory
             {
-                HostName = cfg["RabbitMQ:Host"] ?? "localhost",
-                Port = int.Parse(cfg["RabbitMQ:Port"] ?? "5672"),
-                UserName = cfg["RabbitMQ:User"] ?? "guest",
-                Password = cfg["RabbitMQ:Password"] ?? "guest"
+                HostName = config["RabbitMQ:Host"] ?? "localhost",
+                UserName = config["RabbitMQ:Username"] ?? "guest",
+                Password = config["RabbitMQ:Password"] ?? "guest"
             };
 
-            _conn = factory.CreateConnection();
-            Channel = _conn.CreateModel();
-
-            Channel.ExchangeDeclare(
-                exchange: cfg["RabbitMQ:Exchange"],
-                type: ExchangeType.Direct,
-                durable: true
-            );
+            _connection = factory.CreateConnection();
         }
 
-        public void Dispose()
-        {
-            Channel?.Close();
-            _conn?.Close();
-        }
+        public IModel CreateChannel() => _connection.CreateModel();
+
+        public void Dispose() => _connection?.Close();
     }
 }
-*/
