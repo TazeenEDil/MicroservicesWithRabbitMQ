@@ -2,7 +2,7 @@ name: Microservices RabbitMQ CI/CD
 
 on:
   push:
-    branches: [ "master", "assignment4-Day1", "assignment4-Day2" ]
+    branches: [ "master", "assignment4-Day1", "assignment4-Day2", "assignment4-Day3", "assignment4-Day4"]
 
 jobs:
   build:
