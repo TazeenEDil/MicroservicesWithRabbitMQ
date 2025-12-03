@@ -13,7 +13,7 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("OrdersDb")));
 
 
-// builder.Services.AddSingleton<RabbitMqPublisher>();
+builder.Services.AddSingleton<RabbitMqPublisher>();
 
 var app = builder.Build();
 
