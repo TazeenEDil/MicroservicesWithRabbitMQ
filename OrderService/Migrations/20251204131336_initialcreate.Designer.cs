@@ -12,8 +12,8 @@ using OrderService.Data;
 namespace OrderService.Migrations
 {
     [DbContext(typeof(OrdersDbContext))]
-    [Migration("20251202150357_createinitial")]
-    partial class createinitial
+    [Migration("20251204131336_initialcreate")]
+    partial class initialcreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -46,6 +46,13 @@ namespace OrderService.Migrations
                     b.Property<string>("Product")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

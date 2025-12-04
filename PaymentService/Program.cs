@@ -1,20 +1,76 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.EntityFrameworkCore;
+using PaymentService;
+using PaymentService.Data;
+using PaymentService.Interfaces;
+using PaymentService.Repositories;
+using Serilog;
 
-// Add services to the container.
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Service", "PaymentService")
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Service} - {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/paymentservice-.txt",
+        rollingInterval: RollingInterval.Day,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Service} - {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+try
+{
+    Log.Information("Starting PaymentService...");
 
+    var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+    // Add Serilog
+    builder.Host.UseSerilog();
 
-// Configure the HTTP request pipeline.
+    builder.Services.AddControllers();
 
+    // Database
+    builder.Services.AddDbContext<PaymentsDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("PaymentsDb")));
 
-app.UseHttpsRedirection();
+    // Repository Pattern
+    builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 
-app.UseAuthorization();
+    // Background Worker
+    builder.Services.AddHostedService<Worker>();
 
-app.MapControllers();
+    var app = builder.Build();
 
-app.Run();
+    // Auto-migrate database
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<PaymentsDbContext>();
+        db.Database.Migrate();
+        Log.Information("PaymentService database migrations applied");
+    }
+
+    app.UseHttpsRedirection();
+    app.UseAuthorization();
+    app.MapControllers();
+
+    // Health check endpoint
+    app.MapGet("/health", () => Results.Ok(new
+    {
+        status = "healthy",
+        service = "PaymentService",
+        timestamp = DateTime.UtcNow
+    }));
+
+    Log.Information("PaymentService is ready");
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "PaymentService terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
