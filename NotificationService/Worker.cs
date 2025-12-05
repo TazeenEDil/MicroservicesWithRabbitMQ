@@ -86,13 +86,10 @@ namespace NotificationService
 
         private void SendEmail(PaymentCompletedEvent evt)
         {
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             _logger.LogInformation("📧 EMAIL NOTIFICATION");
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             _logger.LogInformation("To: {Email}", evt.CustomerEmail);
             _logger.LogInformation("Subject: Payment {Status} - Order #{OrderId}",
                 evt.Success ? "Successful ✓" : "Failed ✗", evt.OrderId);
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
             if (evt.Success)
             {
@@ -128,16 +125,12 @@ Please check your payment method and try again.
 ", evt.OrderId, evt.Amount, evt.Message, evt.ProcessedAt);
             }
 
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             _logger.LogInformation("✓ Email sent successfully");
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         }
 
         private void SendSMS(PaymentCompletedEvent evt)
         {
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             _logger.LogInformation("📱 SMS NOTIFICATION");
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
             var sms = evt.Success
                 ? $"✓ Payment successful! Order #{evt.OrderId} - ${evt.Amount:F2}. Thank you!"
@@ -145,9 +138,7 @@ Please check your payment method and try again.
 
             _logger.LogInformation("To: {Phone} (via {Email})", "Customer's Phone", evt.CustomerEmail);
             _logger.LogInformation("Message: {Sms}", sms);
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             _logger.LogInformation("✓ SMS sent successfully");
-            _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         }
 
         public override void Dispose()
