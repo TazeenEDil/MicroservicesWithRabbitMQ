@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OrderService.Interfaces;
 using OrderService.Models;
-using OrderService.Services;
 
 namespace OrderService.Controllers
 {
@@ -33,79 +32,55 @@ namespace OrderService.Controllers
                 order.Amount <= 0)
             {
                 _logger.LogWarning("Invalid order data received");
-                return BadRequest(new { error = "Invalid order data", details = "Email, Product, and Amount are required" });
+                throw new ArgumentException("Email, Product, and Amount are required. Amount must be greater than 0.");
             }
 
-            try
+            order.CreatedAt = DateTime.UtcNow;
+            order.Status = "Pending";
+
+            var createdOrder = await _orderRepo.CreateOrderAsync(order);
+            _logger.LogInformation("Order {OrderId} saved to database", createdOrder.Id);
+
+            var evt = new OrderCreatedEvent
             {
-                order.CreatedAt = DateTime.UtcNow;
-                order.Status = "Pending";
+                OrderId = createdOrder.Id,
+                CustomerEmail = createdOrder.CustomerEmail,
+                Product = createdOrder.Product,
+                Amount = createdOrder.Amount,
+                CreatedAt = createdOrder.CreatedAt
+            };
 
-                var createdOrder = await _orderRepo.CreateOrderAsync(order);
-                _logger.LogInformation("Order {OrderId} saved to database", createdOrder.Id);
+            _publisher.PublishOrderCreated(evt);
+            _logger.LogInformation("OrderCreatedEvent published for Order {OrderId}", createdOrder.Id);
 
-                var evt = new OrderCreatedEvent
-                {
-                    OrderId = createdOrder.Id,
-                    CustomerEmail = createdOrder.CustomerEmail,
-                    Product = createdOrder.Product,
-                    Amount = createdOrder.Amount,
-                    CreatedAt = createdOrder.CreatedAt
-                };
-
-                _publisher.PublishOrderCreated(evt);
-                _logger.LogInformation("OrderCreatedEvent published for Order {OrderId}", createdOrder.Id);
-
-                return Ok(new
-                {
-                    message = "Order created successfully",
-                    order = createdOrder
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                _logger.LogError(ex, "Failed to create order");
-                return StatusCode(500, new { error = "Failed to create order", details = ex.Message });
-            }
+                message = "Order created successfully",
+                order = createdOrder
+            });
         }
 
         [HttpGet]
         public async Task<IActionResult> GetOrders()
         {
-            try
-            {
-                _logger.LogInformation("Retrieving all orders");
-                var orders = await _orderRepo.GetAllOrdersAsync();
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to retrieve orders");
-                return StatusCode(500, new { error = "Failed to retrieve orders" });
-            }
+            _logger.LogInformation("Retrieving all orders");
+            var orders = await _orderRepo.GetAllOrdersAsync();
+            return Ok(orders);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrder(int id)
         {
-            try
-            {
-                _logger.LogInformation("Retrieving order {OrderId}", id);
-                var order = await _orderRepo.GetOrderByIdAsync(id);
+            _logger.LogInformation("Retrieving order {OrderId}", id);
+            var order = await _orderRepo.GetOrderByIdAsync(id);
 
-                if (order == null)
-                {
-                    _logger.LogWarning("Order {OrderId} not found", id);
-                    return NotFound(new { error = $"Order {id} not found" });
-                }
-
-                return Ok(order);
-            }
-            catch (Exception ex)
+            if (order == null)
             {
-                _logger.LogError(ex, "Failed to retrieve order {OrderId}", id);
-                return StatusCode(500, new { error = "Failed to retrieve order" });
+                _logger.LogWarning("Order {OrderId} not found", id);
+                throw new KeyNotFoundException($"Order {id} not found");
             }
+
+            return Ok(order);
         }
 
         [HttpGet("health")]
